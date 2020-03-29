@@ -6,8 +6,12 @@
   "version": "0.1.0",
   "main": "dist/server.js",
   "scripts": {
-    "build": "rm -rf ./dist && webpack --mode=production",
+    "__copyDocTemplate": "cp ./static/docs.html ./dist/docs/index.html",
+    "__copyRapiDoc": "cp ./static/rapidoc-min.js ./dist/docs/rapidoc-min.js",
+    "__copyOpenApi": " cp ./server/openapi.yml ./dist/docs",
+    "build": "rm -rf ./dist && mkdir ./dist && npm run docs && webpack --mode=production",
     "build:watch": "webpack --watch --mode=development",
+    "docs": "rm -rf ./dist/docs && mkdir ./dist/docs && npm run __copyDocTemplate && npm run __copyRapiDoc && npm run __copyOpenApi",
     "lint": "tslint --project . -c tslint.json --fix",
     "prebuild": "npm run lint",
     "server": "nodemon --delay 1000ms --verbose --watch dist ./dist/server.js",
@@ -17,7 +21,7 @@
   },
   "husky": {
     "hooks": {
-      "pre-commit": "npm lint"
+      "pre-commit": "npm run lint && npm run docs"
     }
   },
   "devDependencies": {
