@@ -112,22 +112,73 @@ app.post(
  * Websocket
  */
 
-let wss = new WS.Server({ server, path: "/ws" });
+const wss = new WS.Server({ server, path: "/ws" });
+
+const connected_clients: { [index: string]: any } = {};
+
 wss.on(
   "connection",
-  (ws: {
-    on: (arg0: string, arg1: (message: any) => void) => void;
-    send: (arg0: string) => void;
-  }) => {
-    // connection is up, let's add a simple simple event
-    ws.on("message", (message: any) => {
-      // log the received message and send it back to the client
-      console.log("received: %s", message);
-      ws.send(`Hello, you sent message -> ${message}`);
-    });
+  (socket, req) => {
+    try {
+      let user: object;
+      // @ts-ignore
+      sessionParser(req, {}, () => {
+        // @ts-ignore
+        user = req.session.user;
+      })
+      if (!req || !req.url) throw Error();
 
-    // send immediatly a feedback to the incoming connection
-    ws.send("Hi there, I am a WebSocket server");
+      const queryParam = req.url.split("?")[1];
+      if (queryParam.indexOf("chat") !== 0) {
+        throw new Error();
+      }
+
+      // Remember the chatId
+      const chatId = queryParam.split("=")[1];
+
+      if (!isUuid(chatId)) {
+        throw new Error();
+      }
+
+      if (connected_clients[chatId]) {
+        connected_clients[chatId].push(socket);
+      } else {
+        connected_clients[chatId] = [socket];
+      }
+
+
+      socket.send("Admin: Welcome to the chat");
+      // connection is up, let's add a simple simple event
+      socket.on("message", async (message: any) => {
+        // log the received message and send it back to the client
+        console.log("received: %s", message);
+        console.log("Saving message to chat %s", chatId);
+        try {
+          const userName = get(user, "name", "anonymous");
+          const userColour = get(user, "color", "rebeccapurple")
+          const createdMessage = await mongo.createMessage({ chatId, message, user: userName, color: userColour });
+
+          if (createdMessage) {
+            wss.clients
+              .forEach(client => {
+                if (connected_clients[chatId].indexOf(client) !== -1) {
+                  client.send(JSON.stringify(createdMessage));
+                }
+              });
+          }
+        } catch (e) {
+          console.error(e)
+        }
+
+      });
+
+    } catch (e) {
+      console.error("Chat id not found %s", e)
+      socket.terminate();
+    }
+
+    // // send immediately a feedback to the incoming connection
+    // ws.send("Logged in to room");
   }
 );
 
