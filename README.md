@@ -63,22 +63,6 @@ Create the chats collection
 
 ---
 
-(Optional) Create your first chat
-
-````
-Insert the registry record into the registry collection
-```shell
-> db.chat_registry.insertOne({type: "chat", name: "My first chat", createdAt: 1585583396000, id: 1, lastUpdated: 1585583396000})
-````
-
-Create the chat record in the chats collection
-
-```shell
-> db.chats.insertOne({id: 1, messages: []})
-```
-
----
-
 ## Running
 
 Use the node version specified in .nvmrc

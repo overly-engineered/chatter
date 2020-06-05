@@ -156,8 +156,7 @@ wss.on(
         try {
           const userName = get(user, "name", "anonymous");
           const userColour = get(user, "color", "rebeccapurple")
-          const createdMessage = await mongo.createMessage({ chatId, message, user: userName, color: userColour });
-
+          const createdMessage = await mongo.createMessage(chatId, message, userName, userColour);
           if (createdMessage) {
             wss.clients
               .forEach(client => {

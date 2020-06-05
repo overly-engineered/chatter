@@ -154,7 +154,7 @@ class ChatsMongoDriver {
     return new Date().getTime();
   }
 
-  createMessage({ chatId, message, user, color }: { chatId: string; message: string, user: string, color: string }): Promise<types.Message> {
+  createMessage(chatId: string; message: string, user: string, color: string): Promise<types.Message> {
     return new Promise((resolve, reject) => {
       // Use connect method to connect to the server
       MongoClient.connect(
