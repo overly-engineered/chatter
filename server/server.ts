@@ -1,40 +1,46 @@
-const express = require("express");
-const session = require("express-session");
-const http = require("http");
-const WS = require("ws");
+import * as express from "express";
+import * as bodyParser from "body-parser";
+import * as session from "express-session";
+import * as http from "http";
+import * as WS from "ws";
+import { get } from "lodash";
+
+import { isUuid } from "uuidv4";
+
 const app = express();
 const server = http.createServer(app);
 
 const _ = require("lodash");
 
-const CMD = require("./server-utils/mongo-driver");
-// import ChatsMongoDriver from "./utils/mongo-driver";
+import ChatsMongoDriver from "./server-utils/mongo-driver";
 
-const randomWords = require("random-words");
-const colorGenerator = require("./server-utils/color");
+import randomWords from "random-words";
+import colorGenerator from "./server-utils/color";
+import { createDecipher } from "crypto";
 
 const url = "mongodb://localhost:37017";
 const dbName = "chats";
 
-const mongo = new CMD({ url, dbName });
-
-/**
- * Standard server
- */
-app.use("/dist", express.static(__dirname));
-
-app.use(
-  session({ secret: "superSecret", saveUninitialized: true, resave: true })
-);
+const mongo = new ChatsMongoDriver({ url, dbName });
 
 server.listen(3000, () => {
   console.log("listening on 3000");
 });
+/**
+ * Standard server
+ */
+app.use("/dist", express.static(__dirname));
+app.use("/docs", express.static(__dirname + "/docs"));
+
+const sessionParser = session({ secret: "superSecret", saveUninitialized: true, resave: true })
+
+app.use(sessionParser);
+
+app.use(bodyParser.json());
 
 app.get(
   "/",
-  (req: { session: any }, res: { sendFile: (arg0: string) => void }) => {
-    console.log(req.session);
+  (req: express.Request, res: express.Response) => {
     _.defaults(req.session, {
       user: {
         color: colorGenerator(),
@@ -45,22 +51,62 @@ app.get(
   }
 );
 
-app.post(
+app.get(
+  "/docs",
+  (req: express.Request, res: express.Response) => {
+    console.log("docs");
+    res.sendFile(__dirname + "/docs/index.html");
+  }
+);
+
+/**
+ * Rest endpoints
+ */
+
+app.get(
   "/chats",
-  async (
-    req: { session: any },
-    res: { send: (arg0: any) => void; error: (arg0: string, arg1: any) => void }
-  ) => {
-    console.log(JSON.stringify(req.session));
+  async (req: express.Request, res: express.Response) => {
     try {
       const chats = await mongo.listChats();
-      res.send(chats);
+      return res.json({ chats });
     } catch (e) {
       console.error(e);
-      res.error("500", e);
+      res.status(500)
+      return res.send("Something went wrong listing chats")
     }
   }
 );
+
+app.get(
+  "/chat/:chatId",
+  async (req: express.Request, res: express.Response) => {
+    const chatId = +req.params.chatId;
+    try {
+      const chatDetails = await mongo.getChat(chatId);
+      return res.json({ chatDetails })
+    } catch (e) {
+      console.error(e);
+      res.status(500)
+      return res.send("Something went wrong getting chat")
+    }
+  }
+)
+
+
+app.post(
+  "/chat",
+  async (req: express.Request, res: express.Response) => {
+    const chatName = req.body.name;
+    try {
+      const chatDetails = await mongo.createChat(chatName);
+      return res.json({ chatDetails });
+    } catch (e) {
+      console.error(e);
+      res.status(500);
+      return res.send("Something went wrong creating chat")
+    }
+  }
+)
 
 /**
  * Websocket

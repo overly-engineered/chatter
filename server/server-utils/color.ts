@@ -1,4 +1,4 @@
-const generateColor = () => {
+export default () => {
   return (
     "#" +
     "0123456789abcdef"
@@ -9,5 +9,3 @@ const generateColor = () => {
       .join("")
   );
 };
-
-module.exports = generateColor;
