@@ -152,16 +152,12 @@ components:
         name:
           type: string
           description: Name of the chat
-        correctAt:
+        lastMessage:
           type: number
           description: Timestamp of when this list was compiled to be aware more may have come in
-        totalMessages:
+        messageCount:
           type: integer
           description: Total messages in this chat,
-        messages:
-          type: array
-          items:
-            $ref: "#/components/schemas/ChatMessage"
     ChatMessage:
       type: object
       properties:
@@ -174,6 +170,9 @@ components:
         timestamp:
           type: integer
           description: timestamp of when the chat was created
+        color:
+          type: string
+          description: Users generated colour string
   parameters:
     ChatId:
       name: ChatId,

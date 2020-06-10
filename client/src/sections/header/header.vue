@@ -8,6 +8,7 @@
     <button @click="createChat">Create Chat</button>
     <button @click="deleteChat">Delete Chat</button>
     <button @click="socketConnect">Socket connect</button>
+    <button @click="socketClose">Socket close</button>
     <button @click="sendMessage">Send Message</button>
   </div>
 </template>
@@ -79,13 +80,16 @@ export default Vue.extend({
         "ws://localhost:3000/ws?chat=76b382fa-741d-4b50-a910-0adab59fc078"
       );
       socket.addEventListener("message", function(event) {
-        console.log("Message from server ", event.data);
+        console.log("Message from server ", JSON.parse(event.data));
       });
     },
     sendMessage() {
       if (socket) {
         socket.send("MESSAGE");
       }
+    },
+    socketClose() {
+      socket.close();
     }
   },
   computed: {

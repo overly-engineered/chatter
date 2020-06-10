@@ -8,13 +8,20 @@ export interface ChatItems extends Array<ChatItem> { }
 export interface ChatDetails {
   id: string,
   name: string,
-  correctAt: number,
-  totalMessages: number,
-  messages: Message[]
+  totalMessages: number
 }
 
 export interface Message {
-  id: number;
-  messageText: string;
-  timestamp: number;
+  messageText: string,
+  timestamp: number,
+  user: string,
+  color: string
+}
+
+export interface MessageItems extends Array<Message> { }
+
+export interface SocketParams {
+  chatId: string,
+  userName: string,
+  userColor: string
 }
