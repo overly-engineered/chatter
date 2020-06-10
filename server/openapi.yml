@@ -103,7 +103,7 @@ paths:
         400:
           description: |
             Something wrong with creation parameters
-  ws:/chat/{ChatId}:
+  ws:/chat?chat={ChatId}:
     get:
       tags:
         - Web sockets
@@ -180,7 +180,7 @@ components:
       description: Unique id for a chat
       required: true
       schema:
-        type: integer
+        type: uuid
     ChatName:
       name: ChatName
       in: query
