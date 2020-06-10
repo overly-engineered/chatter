@@ -22,11 +22,8 @@ class ChatsMongoDriver {
       throw new Error("MongoDriver: port and dbName required");
     }
   }
-  /**
-   * List chats
-   *
-   * @returns {Array} chats Array of chats
-   */
+
+
   listChats(): Promise<types.ChatItems> {
     return new Promise((resolve, reject) => {
       MongoClient.connect(
@@ -96,7 +93,6 @@ class ChatsMongoDriver {
   }
 
   createChat(name: string): Promise<types.ChatDetails> {
-    console.log(name);
     return new Promise((resolve, reject) => {
       MongoClient.connect(this.url,
         async (dbErr: any, client: { db: (arg0: string) => any; close: () => void }) => {
@@ -129,32 +125,53 @@ class ChatsMongoDriver {
     });
   }
 
-  updateChat(chatId: number, update: object): Promise<types.ChatDetails> {
+  // updateChat(chatId: number, update: object): Promise<types.ChatDetails> {
+  //   return new Promise((resolve, reject) => {
+  //     resolve(true);
+  //   });
+  // }
+
+  // deleteChat(chatId: number): Promise<object> {
+  //   return new Promise((resolve, reject) => {
+  //     resolve(true);
+  //   });
+  // }
+
+  getMessagesForChat(chatId: string, offset: number = 0): Promise<types.MessageItems> {
+    // Get chat registry details
+    // Get total messages
     return new Promise((resolve, reject) => {
-      resolve(true);
+      MongoClient.connect(
+        this.url,
+        async (
+          dbErr: any,
+          client: { db: (arg0: string) => any; close: () => void }
+        ) => {
+          if (dbErr) {
+            reject(dbErr);
+          }
+
+          const { chatsCollection } = this._getCollection(client);
+
+          try {
+            const messages = await chatsCollection.find({ chatId }, { sort: { timestamp: -1 }, limit: 200, skip: offset, projection: { _id: 0, chatId: 0 } }).toArray();
+            if (messages) {
+              resolve(messages)
+            } else {
+              reject();
+            }
+          } catch (e) {
+            reject(e);
+          } finally {
+            client.close();
+          }
+
+        }
+      );
     });
   }
 
-  deleteChat(chatId: number): Promise<object> {
-    return new Promise((resolve, reject) => {
-      resolve(true);
-    });
-  }
-
-
-  _getCollection(client: any): { db: any, registryCollection: any, chatsCollection: any } {
-    const db = client.db(this.dbName);
-    const registryCollection = db.collection(REGISTRY);
-    const chatsCollection = db.collection(CHATS);
-
-    return { db, registryCollection, chatsCollection }
-  }
-
-  _createTimestamp(): number {
-    return new Date().getTime();
-  }
-
-  createMessage(chatId: string; message: string, user: string, color: string): Promise<types.Message> {
+  createMessage(chatId: string, message: string, user: string, color: string): Promise<types.Message> {
     return new Promise((resolve, reject) => {
       // Use connect method to connect to the server
       MongoClient.connect(
@@ -187,6 +204,23 @@ class ChatsMongoDriver {
         }
       );
     });
+  }
+
+  /**
+   * Helper functions
+   */
+
+
+  _getCollection(client: any): { db: any, registryCollection: any, chatsCollection: any } {
+    const db = client.db(this.dbName);
+    const registryCollection = db.collection(REGISTRY);
+    const chatsCollection = db.collection(CHATS);
+
+    return { db, registryCollection, chatsCollection }
+  }
+
+  _createTimestamp(): number {
+    return new Date().getTime();
   }
 }
 
