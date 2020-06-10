@@ -37,43 +37,39 @@ $ kill <pid>
 
 </details>
 
+Connect via cli
+
+```shell
+$ mongo --port 37017
+```
+
 Create a database called chats
 
 ```shell
-$ use chats
+> use chats
 ```
 
 Create the chat_registry collection
 
 ```shell
-$ db.createCollection("chat_registry");
+> db.createCollection("chat_registry");
 ```
 
 Create the chats collection
 
 ```shell
-$ db.createCollection("chats")
-```
-
----
-
-(Optional) Create your first chat
-
-````
-Insert the registry record into the registry collection
-```shell
-$ db.chat_registry.insertOne({type: "chat", name: "My first chat", createdAt: new Date(), id: 1})
-````
-
-Create the chat record in the chats collection
-
-```shell
-$ db.chats.insertOne({id: 1, messages: []})
+> db.createCollection("chats")
 ```
 
 ---
 
 ## Running
+
+Use the node version specified in .nvmrc
+
+```shell
+$ nvm use
+```
 
 In development mode
 

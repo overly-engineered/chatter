@@ -1,8 +1,15 @@
+// https://mongodb.github.io/node-mongodb-native/2.1/tutorials/projections/
 const MongoClient = require("mongodb").MongoClient;
-// const Db = require("mongodb").Db;
-// const Server = require("mongodb").Server;
+const ObjectID = require('mongodb').ObjectID;
+import { uuid } from 'uuidv4';
+import * as types from "../@types/interfaces";
+
 const REGISTRY = "chat_registry";
-const chats = "chats";
+const CHATS = "chats";
+
+const deletedFilter = {
+  $or: [{ deleted: { $exists: false } }, { deleted: false }]
+}
 
 class ChatsMongoDriver {
   url: string;
@@ -16,11 +23,12 @@ class ChatsMongoDriver {
     }
   }
 
-  listChats() {
+
+  listChats(): Promise<types.ChatItems> {
     return new Promise((resolve, reject) => {
       MongoClient.connect(
         this.url,
-        (
+        async (
           dbErr: any,
           client: { db: (arg0: string) => any; close: () => void }
         ) => {
@@ -28,54 +36,192 @@ class ChatsMongoDriver {
             reject(dbErr);
           }
 
-          const db = client.db(this.dbName);
+          const { registryCollection } = this._getCollection(client);
 
-          const collection = db.collection(REGISTRY);
-
-          collection.find({}).toArray((err: any, docs: unknown) => {
-            if (err) {
-              reject(err);
-            }
-            resolve(docs);
-          });
-
-          client.close();
+          try {
+            const chats = await registryCollection.find(deletedFilter).project({ _id: 0 }).toArray();
+            resolve(chats);
+          } catch (e) {
+            reject(e)
+          } finally {
+            client.close();
+          }
         }
       );
     });
   }
 
-  // getChat() {}
+  getChat(chatId: number): Promise<types.ChatDetails> {
+    // Get chat registry details
+    // Get total messages
+    return new Promise((resolve, reject) => {
+      MongoClient.connect(
+        this.url,
+        async (
+          dbErr: any,
+          client: { db: (arg0: string) => any; close: () => void }
+        ) => {
+          if (dbErr) {
+            reject(dbErr);
+          }
 
-  createMessage({ chatId, message }: { chatId: string; message: string }) {
+          const { registryCollection, chatsCollection } = this._getCollection(client);
+
+          const chatPromise = registryCollection.findOne({ $and: [{ id: chatId }, deletedFilter] }, { projection: { _id: 0, type: 0 } })
+          const messageCountPromise = chatsCollection.estimatedDocumentCount({ chatId });
+
+          try {
+            const [chat, messageCount] = [await chatPromise, await messageCountPromise];
+
+            if (chat && messageCount) {
+              resolve({
+                ...chat,
+                messageCount
+              })
+            } else {
+              reject();
+            }
+          } catch (e) {
+            reject(e);
+          } finally {
+            client.close();
+          }
+
+        }
+      );
+    });
+  }
+
+  createChat(name: string): Promise<types.ChatDetails> {
+    return new Promise((resolve, reject) => {
+      MongoClient.connect(this.url,
+        async (dbErr: any, client: { db: (arg0: string) => any; close: () => void }) => {
+          if (dbErr) {
+            reject(dbErr);
+          }
+
+          const { registryCollection } = this._getCollection(client);
+
+          const id = uuid();
+
+          const timestamp = this._createTimestamp()
+
+          const chatPromise = await registryCollection.insertOne({ type: "chat", name, createdAt: timestamp, lastUpdatedAt: timestamp, id })
+          const chatDocument = registryCollection.findOne(ObjectID(chatPromise.insertedId), { projection: { _id: 0, type: 0 } });
+
+          try {
+            const chat = await chatDocument;
+            if (chat) {
+              resolve(chat);
+            } else {
+              reject();
+            }
+          } catch (e) {
+            reject(e)
+          } finally {
+            client.close()
+          }
+        });
+    });
+  }
+
+  // updateChat(chatId: number, update: object): Promise<types.ChatDetails> {
+  //   return new Promise((resolve, reject) => {
+  //     resolve(true);
+  //   });
+  // }
+
+  // deleteChat(chatId: number): Promise<object> {
+  //   return new Promise((resolve, reject) => {
+  //     resolve(true);
+  //   });
+  // }
+
+  getMessagesForChat(chatId: string, offset: number = 0): Promise<types.MessageItems> {
+    // Get chat registry details
+    // Get total messages
+    return new Promise((resolve, reject) => {
+      MongoClient.connect(
+        this.url,
+        async (
+          dbErr: any,
+          client: { db: (arg0: string) => any; close: () => void }
+        ) => {
+          if (dbErr) {
+            reject(dbErr);
+          }
+
+          const { chatsCollection } = this._getCollection(client);
+
+          try {
+            const messages = await chatsCollection.find({ chatId }, { sort: { timestamp: -1 }, limit: 200, skip: offset, projection: { _id: 0, chatId: 0 } }).toArray();
+            if (messages) {
+              resolve(messages)
+            } else {
+              reject();
+            }
+          } catch (e) {
+            reject(e);
+          } finally {
+            client.close();
+          }
+
+        }
+      );
+    });
+  }
+
+  createMessage(chatId: string, message: string, user: string, color: string): Promise<types.Message> {
     return new Promise((resolve, reject) => {
       // Use connect method to connect to the server
       MongoClient.connect(
         this.url,
-        (
+        async (
           dbErr: any,
           client: { db: (arg0: string) => any; close: () => void }
         ) => {
           if (dbErr) {
             reject(dbErr);
+          };
+          const { chatsCollection } = this._getCollection(client);
+          if (!chatId || !message) {
+            throw Error();
           }
-          console.log("Connected successfully to server");
-          const db = client.db(this.dbName);
-
-          const collection = db.collection(REGISTRY);
-
-          collection.find({}).toArray((err: any, docs: unknown) => {
-            if (err) {
-              reject(err);
+          const timestamp = this._createTimestamp();
+          try {
+            const chatCreation = await chatsCollection.insertOne({ timestamp, chatId, message, user, color });
+            const chatDocument = await chatsCollection.findOne(ObjectID(chatCreation.insertedId), { projection: { _id: 0 } });
+            if (chatDocument) {
+              resolve(chatDocument);
+            } else {
+              throw Error("Create failure")
             }
-            resolve(docs);
-          });
-
-          client.close();
+          } catch (e) {
+            reject(e)
+          } finally {
+            client.close();
+          }
         }
       );
     });
   }
+
+  /**
+   * Helper functions
+   */
+
+
+  _getCollection(client: any): { db: any, registryCollection: any, chatsCollection: any } {
+    const db = client.db(this.dbName);
+    const registryCollection = db.collection(REGISTRY);
+    const chatsCollection = db.collection(CHATS);
+
+    return { db, registryCollection, chatsCollection }
+  }
+
+  _createTimestamp(): number {
+    return new Date().getTime();
+  }
 }
 
-module.exports = ChatsMongoDriver;
+export default ChatsMongoDriver;
