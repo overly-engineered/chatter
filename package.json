@@ -1,0 +1,60 @@
+{
+  "name": "chatter",
+  "author": "Jamie Pettman",
+  "description": "Simple instant messenger app",
+  "license": "ISC",
+  "version": "0.1.0",
+  "main": "dist/server.js",
+  "scripts": {
+    "__copyDocTemplate": "cp ./static/docs.html ./dist/docs/index.html",
+    "__copyRapiDoc": "cp ./static/rapidoc-min.js ./dist/docs/rapidoc-min.js",
+    "__copyOpenApi": " cp ./server/openapi.yml ./dist/docs",
+    "build": "rm -rf ./dist && mkdir ./dist && npm run docs && webpack --mode=production",
+    "build:watch": "webpack --watch --mode=development",
+    "docs": "rm -rf ./dist/docs && mkdir ./dist/docs && npm run __copyDocTemplate && npm run __copyRapiDoc && npm run __copyOpenApi",
+    "lint": "tslint --project . -c tslint.json --fix",
+    "prebuild": "npm run lint",
+    "server": "nodemon --delay 1000ms --verbose --watch dist ./dist/server.js",
+    "start:dev": "npm-run-all -p build:watch server",
+    "start": "node ./dist/server.js",
+    "test": "echo No tests yet"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run lint && npm run docs"
+    }
+  },
+  "devDependencies": {
+    "@types/express": "4.17.3",
+    "@types/express-session": "1.17.0",
+    "@types/node": "12.12.31",
+    "css-loader": "3.4.2",
+    "html-webpack-plugin": "^4.0.2",
+    "husky": "4.2.3",
+    "nodemon": "2.0.2",
+    "random-words": "1.1.0",
+    "ts-loader": "6.2.1",
+    "tslint": "6.1.0",
+    "typescript": "3.7.5",
+    "vue": "2.6.11",
+    "vue-loader": "15.9.0",
+    "vue-property-decorator": "8.4.0",
+    "vue-template-compiler": "2.6.11",
+    "webpack": "4.41.6",
+    "webpack-cli": "3.3.11"
+  },
+  "dependencies": {
+    "@types/lodash": "4.14.155",
+    "@types/mongodb": "3.5.4",
+    "@types/ws": "7.2.5",
+    "express": "4.17.1",
+    "express-session": "1.17.0",
+    "http": "0.0.1-security",
+    "lodash": "4.17.15",
+    "mongodb": "3.5.5",
+    "npm-run-all": "4.1.5",
+    "uuidv4": "6.1.0",
+    "webpack-node-externals": "1.7.2",
+    "ws": "7.2.3"
+  }
+}

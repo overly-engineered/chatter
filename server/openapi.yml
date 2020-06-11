@@ -1,0 +1,190 @@
+openapi: 3.0.2
+info:
+  title: Chatter api
+  description: Chat
+  version: "0.2.0"
+paths:
+  /chats:
+    get:
+      tags:
+        - Rest operations
+      summary: List Chats
+      operationId: getChatList
+      description: |
+        List all chats
+      responses:
+        200:
+          description: |
+            All chats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Chat"
+  /chat/{ChatId}:
+    get:
+      tags:
+        - Rest operations
+      summary: Get chat details
+      operationId: getChatDetails
+      description: |
+        Gets a chats most recent messages
+      parameters:
+        - $ref: "#/components/parameters/ChatId"
+      responses:
+        200:
+          description: |
+            Chat content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatDetails"
+        404:
+          description: |
+            Chat not found
+    put:
+      tags:
+        - Rest operations
+      summary: Update chat name
+      operationId: updateChat
+      description: |
+        Update a chats details
+      parameters:
+        - $ref: "#/components/parameters/ChatId"
+      responses:
+        200:
+          description: |
+            Updated chat details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chat"
+        401:
+          description: |
+            Something wrong with update parameters
+        404:
+          description: |
+            Chat not found
+    delete:
+      tags:
+        - Rest operations
+      summary: Delete a chat
+      operationId: deleteChat
+      description: |
+        Delete a chat of specified id
+      parameters:
+        - $ref: "#/components/parameters/ChatId"
+      responses:
+        200:
+          description: |
+            Deleted successfully
+        404:
+          description: |
+            Chat not found
+  /chat:
+    post:
+      tags:
+        - Rest operations
+      summary: Create a chat
+      operationId: createChat
+      description: |
+        Create a chat with a specified name
+      parameters:
+        - $ref: "#/components/parameters/ChatName"
+      responses:
+        201:
+          description: |
+            Chat details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Chat"
+        400:
+          description: |
+            Something wrong with creation parameters
+  ws:/chat?chat={ChatId}:
+    get:
+      tags:
+        - Web sockets
+      description: Subscribing to chat
+      parameters:
+        - $ref: "#/components/parameters/ChatId"
+    post:
+      tags:
+        - Web sockets
+      description: Send message
+      parameters:
+        - $ref: "#/components/parameters/ChatId"
+    delete:
+      tags:
+        - Web sockets
+      description: Unsubscribe from chat
+      parameters:
+        - $ref: "#/components/parameters/ChatId"
+  ws:/chats:
+    get:
+      tags:
+        - Web sockets
+      description: Subscribing to chats updates
+    delete:
+      tags:
+        - Web sockets
+      description: Unsubscribe from chats updates
+
+components:
+  schemas:
+    Chat:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Id of the chat
+        name:
+          type: string
+          description: Name of the chat
+    ChatDetails:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Id of the chat
+        name:
+          type: string
+          description: Name of the chat
+        lastMessage:
+          type: number
+          description: Timestamp of when this list was compiled to be aware more may have come in
+        messageCount:
+          type: integer
+          description: Total messages in this chat,
+    ChatMessage:
+      type: object
+      properties:
+        username:
+          type: string
+          description: Username of the user who posted the message
+        message:
+          type: string
+          description: Content of the message
+        timestamp:
+          type: integer
+          description: timestamp of when the chat was created
+        color:
+          type: string
+          description: Users generated colour string
+  parameters:
+    ChatId:
+      name: ChatId,
+      in: path
+      description: Unique id for a chat
+      required: true
+      schema:
+        type: uuid
+    ChatName:
+      name: ChatName
+      in: query
+      description: Name of a chat
+      required: true
+      schema:
+        type: string
