@@ -1,6 +1,5 @@
 <template>
   <div>
-    <div class="greeting">Hello {{ name }}{{ exclamationMarks }}</div>
     <button @click="decrement">-</button>
     <button @click="increment">+</button>
     <button @click="getChats">Get Chats</button>
@@ -15,25 +14,12 @@
 
 <script lang="ts">
 import Vue from "vue";
+//@ts-ignore
 let socket;
 export default Vue.extend({
-  props: ["name", "initialEnthusiasm"],
-  data() {
-    return {
-      enthusiasm: this.initialEnthusiasm
-    };
-  },
   methods: {
-    increment() {
-      this.enthusiasm++;
-    },
-    decrement() {
-      if (this.enthusiasm > 1) {
-        this.enthusiasm--;
-      }
-    },
     getChats() {
-      fetch("/chats")
+      fetch("/chat-api/chats")
         .then(response => response.json())
         .then(data => {
           console.log(data);
@@ -43,7 +29,7 @@ export default Vue.extend({
         });
     },
     getChat() {
-      fetch("/chat/1")
+      fetch("/chat-api/chat/1")
         .then(response => response.json())
         .then(data => {
           console.log(data);
@@ -60,12 +46,12 @@ export default Vue.extend({
         });
     },
     createChat() {
-      fetch(`/chat/`, {
+      fetch(`/chat-api/chat/`, {
         method: "post",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ name: "chat " + this.enthusiasm })
+        body: JSON.stringify({ name: "chat abc" })
       })
         .then(response => response.json())
         .then(data => {
@@ -77,24 +63,22 @@ export default Vue.extend({
     },
     socketConnect() {
       socket = new WebSocket(
-        "ws://localhost:3000/ws?chat=76b382fa-741d-4b50-a910-0adab59fc078"
+        "ws://localhost:3000/chat-api/connection?chat=76b382fa-741d-4b50-a910-0adab59fc078"
       );
       socket.addEventListener("message", function(event) {
         console.log("Message from server ", JSON.parse(event.data));
       });
     },
     sendMessage() {
+      //@ts-ignore
       if (socket) {
+        //@ts-ignore
         socket.send("MESSAGE");
       }
     },
     socketClose() {
+      //@ts-ignore
       socket.close();
-    }
-  },
-  computed: {
-    exclamationMarks(): string {
-      return Array(this.enthusiasm + 1).join("!");
     }
   }
 });

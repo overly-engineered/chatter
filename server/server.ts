@@ -44,26 +44,10 @@ app.use(sessionParser);
 app.use(bodyParser.json());
 
 /**
- * Initial get request that everything hits.
- */
-app.get(
-  "/",
-  (req: express.Request, res: express.Response) => {
-    _.defaults(req.session, {
-      user: {
-        color: colorGenerator(),
-        name: randomWords({ exactly: 2, join: "-" })
-      }
-    });
-    res.sendFile(__dirname + "/index.html");
-  }
-);
-
-/**
  * Doc page
  */
 app.get(
-  "/docs",
+  "/chat-api/docs",
   (req: express.Request, res: express.Response) => {
     console.log("docs");
     res.sendFile(__dirname + "/docs/index.html");
@@ -74,7 +58,7 @@ app.get(
  * Get a list of chats
  */
 app.get(
-  "/chats",
+  "/chat-api/chats",
   async (req: express.Request, res: express.Response) => {
     try {
       const chats = await mongo.listChats();
@@ -91,7 +75,7 @@ app.get(
  * Get a specific chat details
  */
 app.get(
-  "/chat/:chatId",
+  "/chat-api/chat/:chatId",
   async (req: express.Request, res: express.Response) => {
     const chatId = +req.params.chatId;
     try {
@@ -109,7 +93,7 @@ app.get(
  * Create a new chat
  */
 app.post(
-  "/chat",
+  "/chat-api/chat",
   async (req: express.Request, res: express.Response) => {
     const chatName = req.body.name;
     try {
@@ -130,7 +114,7 @@ app.post(
 /**
  * Our created webserver
  */
-const wss = new WS.Server({ server, path: "/ws" });
+const wss = new WS.Server({ server, path: "/chat-api/connection" });
 
 /**
  * Our list of connected clients
@@ -305,3 +289,19 @@ wss.on(
 );
 
 
+
+/**
+ * Initial get request that everything hits.
+ */
+app.get(
+  "*",
+  (req: express.Request, res: express.Response) => {
+    _.defaults(req.session, {
+      user: {
+        color: colorGenerator(),
+        name: randomWords({ exactly: 2, join: "-" })
+      }
+    });
+    res.sendFile(__dirname + "/index.html");
+  }
+);
