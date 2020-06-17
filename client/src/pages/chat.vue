@@ -83,8 +83,9 @@ export default class Chat extends Vue {
 
   createSocket() {
     try {
+      const HOST = location.origin.replace(/^http/, "ws");
       this.socket = new WebSocket(
-        `ws://localhost:3000/chat-api/connection?chat=${this.$route.params.chatId}`
+        `${HOST}/chat-api/connection?chat=${this.$route.params.chatId}`
       );
       this.enabled = true;
       this.socket.addEventListener("message", ({ data }) => {

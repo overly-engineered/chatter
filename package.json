@@ -5,6 +5,9 @@
   "license": "ISC",
   "version": "0.1.0",
   "main": "dist/server.js",
+  "engines": {
+    "node": "10.19.0"
+  },
   "scripts": {
     "__copyDocTemplate": "cp ./static/docs.html ./dist/docs/index.html",
     "__copyRapiDoc": "cp ./static/rapidoc-min.js ./dist/docs/rapidoc-min.js",
@@ -42,6 +45,7 @@
     "ts-loader": "6.2.1",
     "tslint": "6.1.0",
     "typescript": "3.7.5",
+    "uglifyjs-webpack-plugin": "^2.2.0",
     "vue": "^2.6.11",
     "vue-loader": "15.9.0",
     "vue-router": "^3.3.3",

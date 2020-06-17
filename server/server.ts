@@ -26,8 +26,9 @@ const dbName = DATABASE;
 
 const mongo = new ChatsMongoDriver({ url, dbName });
 
-server.listen(3000, () => {
-  console.log("listening on 3000");
+const port = process.env.PORT || 5000;
+server.listen(port, () => {
+  console.log("listening on 3");
 });
 
 /**
@@ -124,12 +125,12 @@ app.post(
 /**
  * Our created webserver
  */
-const wss = new WS.Server({ server, path: "/chat-api/connection" });
+const wss = new WS.Server({ server, path: `/chat-api/connection` });
 
 /**
  * Our list of connected clients
  */
-const connected_clients: { [index: string]: Set<WS> } = {};
+const CONNECTED_CLIENTS: { [index: string]: Set<WS> } = {};
 
 /**
  * When the Websocket server gets a connection
@@ -146,16 +147,16 @@ wss.on(
      *
      * @returns Object
      */
-    const _validateRequestAndParams = (req: express.Request): types.SocketParams => {
-      if (!req || !req.url) throw Error("Invalid connection attempt");
-      const user = get(req, "session.user");
+    const _validateRequestAndParams = (request: express.Request): types.SocketParams => {
+      if (!request || !request.url) throw Error("Invalid connection attempt");
+      const user = get(request, "session.user");
       if (!user) {
         throw new Error("No user detected")
       } else {
         const userName = get(user, "name", "anonymous");
         const userColor = get(user, "color", "rebeccapurple")
 
-        const queryParam = req.url.split("?")[1];
+        const queryParam = request.url.split("?")[1];
         if (queryParam.indexOf("chat") !== 0) {
           throw new Error("Invalid url");
         }
@@ -181,11 +182,11 @@ wss.on(
     const _broadcastMessage = (chatId: string, message: object, sendToSelf: boolean = false) => {
       wss.clients.forEach(client => {
         if (sendToSelf) {
-          if (connected_clients[chatId] && connected_clients[chatId].has(client)) {
+          if (CONNECTED_CLIENTS[chatId] && CONNECTED_CLIENTS[chatId].has(client)) {
             client.send(JSON.stringify(message));
           }
         } else {
-          if (client !== socket && connected_clients[chatId] && connected_clients[chatId].has(client)) {
+          if (client !== socket && CONNECTED_CLIENTS[chatId] && CONNECTED_CLIENTS[chatId].has(client)) {
             client.send(JSON.stringify(message));
           }
         }
@@ -206,7 +207,7 @@ wss.on(
       if (prevMessages) {
         const response = {
           broadcast: `Welcome to the chat`,
-          prevMessages: prevMessages
+          prevMessages
         }
         _broadcastMessage(chatId, { broadcast: `${userName} joined the chat` })
         registerSocket(chatId)
@@ -223,11 +224,11 @@ wss.on(
      * @param chatId Current chat id
      */
     const registerSocket = (chatId: string) => {
-      if (connected_clients[chatId]) {
-        connected_clients[chatId].add(socket);
+      if (CONNECTED_CLIENTS[chatId]) {
+        CONNECTED_CLIENTS[chatId].add(socket);
       } else {
-        connected_clients[chatId] = new Set();
-        connected_clients[chatId].add(socket);
+        CONNECTED_CLIENTS[chatId] = new Set();
+        CONNECTED_CLIENTS[chatId].add(socket);
       }
     }
 
@@ -238,8 +239,8 @@ wss.on(
      * @param chatId Current chat id
      */
     const deRegisterSocket = (chatId: string) => {
-      if (connected_clients[chatId]) {
-        connected_clients[chatId].delete(socket);
+      if (CONNECTED_CLIENTS[chatId]) {
+        CONNECTED_CLIENTS[chatId].delete(socket);
       }
     }
 
