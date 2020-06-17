@@ -17,8 +17,12 @@ import ChatsMongoDriver from "./server-utils/mongo-driver";
 import randomWords from "random-words";
 import colorGenerator from "./server-utils/color";
 
-const url = "mongodb://localhost:37017";
-const dbName = "chats";
+
+const MONGO_URL = process.env.MONGO_URL || "mongodb://localhost:37017";
+const DATABASE = process.env.DATABASE || "chats";
+
+const url = MONGO_URL;
+const dbName = DATABASE;
 
 const mongo = new ChatsMongoDriver({ url, dbName });
 
