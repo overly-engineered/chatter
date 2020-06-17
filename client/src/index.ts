@@ -2,9 +2,11 @@ import Vue from "vue";
 import VueRouter from "vue-router";
 Vue.use(VueRouter)
 
-import Header from "./sections/header.vue";
+import Element from 'element-ui'
+import 'element-ui/lib/theme-chalk/index.css';
+Vue.use(Element);
 
-
+import App from "./App.vue";
 import Home from "./pages/home.vue";
 import Chat from "./pages/chat.vue"
 const routes = [
@@ -22,8 +24,7 @@ const v = new Vue({
   el: "#app",
   template: `<div>
     <Header></Header>
-    <router-view></router-view>
   </div>`,
-  components: { Header },
-  router
+  router,
+  render: h => h(App)
 });
