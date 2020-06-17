@@ -31,6 +31,7 @@ server.listen(3000, () => {
  */
 app.use("/dist", express.static(__dirname));
 app.use("/docs", express.static(__dirname + "/docs"));
+app.use("/fonts", express.static(__dirname + "/fonts"));
 
 /**
  * Create session stuff
@@ -49,7 +50,6 @@ app.use(bodyParser.json());
 app.get(
   "/chat-api/docs",
   (req: express.Request, res: express.Response) => {
-    console.log("docs");
     res.sendFile(__dirname + "/docs/index.html");
   }
 );
@@ -57,11 +57,12 @@ app.get(
 /**
  * Get a list of chats
  */
-app.get(
+app.post(
   "/chat-api/chats",
   async (req: express.Request, res: express.Response) => {
+    const searchString = req.body.search;
     try {
-      const chats = await mongo.listChats();
+      const chats = await mongo.listChats(searchString);
       return res.json({ chats });
     } catch (e) {
       console.error(e);
@@ -77,14 +78,19 @@ app.get(
 app.get(
   "/chat-api/chat/:chatId",
   async (req: express.Request, res: express.Response) => {
-    const chatId = +req.params.chatId;
+    const chatId = req.params.chatId;
     try {
       const chatDetails = await mongo.getChat(chatId);
-      return res.json({ chatDetails })
+      return res.json(chatDetails)
     } catch (e) {
       console.error(e);
-      res.status(500)
-      return res.send("Something went wrong getting chat")
+      if (e === 404) {
+        res.status(404);
+        return res.send("Chat not found")
+      } else {
+        res.status(500)
+        return res.send("Something went wrong getting chat")
+      }
     }
   }
 )
@@ -98,7 +104,7 @@ app.post(
     const chatName = req.body.name;
     try {
       const chatDetails = await mongo.createChat(chatName);
-      return res.json({ chatDetails });
+      return res.json(chatDetails);
     } catch (e) {
       console.error(e);
       res.status(500);
@@ -171,11 +177,11 @@ wss.on(
     const _broadcastMessage = (chatId: string, message: object, sendToSelf: boolean = false) => {
       wss.clients.forEach(client => {
         if (sendToSelf) {
-          if (connected_clients[chatId].has(client)) {
+          if (connected_clients[chatId] && connected_clients[chatId].has(client)) {
             client.send(JSON.stringify(message));
           }
         } else {
-          if (client !== socket && connected_clients[chatId].has(client)) {
+          if (client !== socket && connected_clients[chatId] && connected_clients[chatId].has(client)) {
             client.send(JSON.stringify(message));
           }
         }
@@ -228,7 +234,9 @@ wss.on(
      * @param chatId Current chat id
      */
     const deRegisterSocket = (chatId: string) => {
-      connected_clients[chatId].delete(socket);
+      if (connected_clients[chatId]) {
+        connected_clients[chatId].delete(socket);
+      }
     }
 
     /**
@@ -287,8 +295,6 @@ wss.on(
     }
   }
 );
-
-
 
 /**
  * Initial get request that everything hits.
