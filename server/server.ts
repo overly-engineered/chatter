@@ -17,8 +17,12 @@ import ChatsMongoDriver from "./server-utils/mongo-driver";
 import randomWords from "random-words";
 import colorGenerator from "./server-utils/color";
 
-const url = "mongodb://localhost:37017";
-const dbName = "chats";
+
+const MONGO_URL = process.env.MONGO_URL || "mongodb://localhost:37017";
+const DATABASE = process.env.DATABASE || "chats";
+
+const url = MONGO_URL;
+const dbName = DATABASE;
 
 const mongo = new ChatsMongoDriver({ url, dbName });
 
@@ -31,6 +35,7 @@ server.listen(3000, () => {
  */
 app.use("/dist", express.static(__dirname));
 app.use("/docs", express.static(__dirname + "/docs"));
+app.use("/fonts", express.static(__dirname + "/fonts"));
 
 /**
  * Create session stuff
@@ -44,28 +49,11 @@ app.use(sessionParser);
 app.use(bodyParser.json());
 
 /**
- * Initial get request that everything hits.
- */
-app.get(
-  "/",
-  (req: express.Request, res: express.Response) => {
-    _.defaults(req.session, {
-      user: {
-        color: colorGenerator(),
-        name: randomWords({ exactly: 2, join: "-" })
-      }
-    });
-    res.sendFile(__dirname + "/index.html");
-  }
-);
-
-/**
  * Doc page
  */
 app.get(
-  "/docs",
+  "/chat-api/docs",
   (req: express.Request, res: express.Response) => {
-    console.log("docs");
     res.sendFile(__dirname + "/docs/index.html");
   }
 );
@@ -73,11 +61,12 @@ app.get(
 /**
  * Get a list of chats
  */
-app.get(
-  "/chats",
+app.post(
+  "/chat-api/chats",
   async (req: express.Request, res: express.Response) => {
+    const searchString = req.body.search;
     try {
-      const chats = await mongo.listChats();
+      const chats = await mongo.listChats(searchString);
       return res.json({ chats });
     } catch (e) {
       console.error(e);
@@ -91,16 +80,21 @@ app.get(
  * Get a specific chat details
  */
 app.get(
-  "/chat/:chatId",
+  "/chat-api/chat/:chatId",
   async (req: express.Request, res: express.Response) => {
-    const chatId = +req.params.chatId;
+    const chatId = req.params.chatId;
     try {
       const chatDetails = await mongo.getChat(chatId);
-      return res.json({ chatDetails })
+      return res.json(chatDetails)
     } catch (e) {
       console.error(e);
-      res.status(500)
-      return res.send("Something went wrong getting chat")
+      if (e === 404) {
+        res.status(404);
+        return res.send("Chat not found")
+      } else {
+        res.status(500)
+        return res.send("Something went wrong getting chat")
+      }
     }
   }
 )
@@ -109,12 +103,12 @@ app.get(
  * Create a new chat
  */
 app.post(
-  "/chat",
+  "/chat-api/chat",
   async (req: express.Request, res: express.Response) => {
     const chatName = req.body.name;
     try {
       const chatDetails = await mongo.createChat(chatName);
-      return res.json({ chatDetails });
+      return res.json(chatDetails);
     } catch (e) {
       console.error(e);
       res.status(500);
@@ -130,7 +124,7 @@ app.post(
 /**
  * Our created webserver
  */
-const wss = new WS.Server({ server, path: "/ws" });
+const wss = new WS.Server({ server, path: "/chat-api/connection" });
 
 /**
  * Our list of connected clients
@@ -187,11 +181,11 @@ wss.on(
     const _broadcastMessage = (chatId: string, message: object, sendToSelf: boolean = false) => {
       wss.clients.forEach(client => {
         if (sendToSelf) {
-          if (connected_clients[chatId].has(client)) {
+          if (connected_clients[chatId] && connected_clients[chatId].has(client)) {
             client.send(JSON.stringify(message));
           }
         } else {
-          if (client !== socket && connected_clients[chatId].has(client)) {
+          if (client !== socket && connected_clients[chatId] && connected_clients[chatId].has(client)) {
             client.send(JSON.stringify(message));
           }
         }
@@ -244,7 +238,9 @@ wss.on(
      * @param chatId Current chat id
      */
     const deRegisterSocket = (chatId: string) => {
-      connected_clients[chatId].delete(socket);
+      if (connected_clients[chatId]) {
+        connected_clients[chatId].delete(socket);
+      }
     }
 
     /**
@@ -304,4 +300,18 @@ wss.on(
   }
 );
 
-
+/**
+ * Initial get request that everything hits.
+ */
+app.get(
+  "*",
+  (req: express.Request, res: express.Response) => {
+    _.defaults(req.session, {
+      user: {
+        color: colorGenerator(),
+        name: randomWords({ exactly: 2, join: "-" })
+      }
+    });
+    res.sendFile(__dirname + "/index.html");
+  }
+);

@@ -1,15 +1,15 @@
 // https://mongodb.github.io/node-mongodb-native/2.1/tutorials/projections/
-const MongoClient = require("mongodb").MongoClient;
-const ObjectID = require('mongodb').ObjectID;
+import { MongoClient, ObjectID } from "mongodb"
 import { uuid } from 'uuidv4';
 import * as types from "../@types/interfaces";
 
 const REGISTRY = "chat_registry";
 const CHATS = "chats";
 
-const deletedFilter = {
-  $or: [{ deleted: { $exists: false } }, { deleted: false }]
-}
+// Not implemented as yet
+// const deletedFilter = {
+//   $or: [{ deleted: { $exists: false } }, { deleted: false }]
+// }
 
 class ChatsMongoDriver {
   url: string;
@@ -24,7 +24,7 @@ class ChatsMongoDriver {
   }
 
 
-  listChats(): Promise<types.ChatItems> {
+  listChats(searchString: string): Promise<types.ChatItems> {
     return new Promise((resolve, reject) => {
       MongoClient.connect(
         this.url,
@@ -37,9 +37,9 @@ class ChatsMongoDriver {
           }
 
           const { registryCollection } = this._getCollection(client);
-
+          const regex = new RegExp(`${searchString}`)
           try {
-            const chats = await registryCollection.find(deletedFilter).project({ _id: 0 }).toArray();
+            const chats = await registryCollection.find({ name: { $regex: regex } }).project({ _id: 0 }).limit(100).sort({ createdAt: -1 }).toArray();
             resolve(chats);
           } catch (e) {
             reject(e)
@@ -51,7 +51,7 @@ class ChatsMongoDriver {
     });
   }
 
-  getChat(chatId: number): Promise<types.ChatDetails> {
+  getChat(chatId: string): Promise<types.ChatDetails> {
     // Get chat registry details
     // Get total messages
     return new Promise((resolve, reject) => {
@@ -65,21 +65,15 @@ class ChatsMongoDriver {
             reject(dbErr);
           }
 
-          const { registryCollection, chatsCollection } = this._getCollection(client);
-
-          const chatPromise = registryCollection.findOne({ $and: [{ id: chatId }, deletedFilter] }, { projection: { _id: 0, type: 0 } })
-          const messageCountPromise = chatsCollection.estimatedDocumentCount({ chatId });
+          const { registryCollection } = this._getCollection(client);
+          const chatPromise = registryCollection.findOne({ id: chatId }, { projection: { _id: 0, type: 0 } })
 
           try {
-            const [chat, messageCount] = [await chatPromise, await messageCountPromise];
-
-            if (chat && messageCount) {
-              resolve({
-                ...chat,
-                messageCount
-              })
+            const chat = await chatPromise;
+            if (chat) {
+              resolve(chat)
             } else {
-              reject();
+              reject(404);
             }
           } catch (e) {
             reject(e);
@@ -106,8 +100,8 @@ class ChatsMongoDriver {
 
           const timestamp = this._createTimestamp()
 
-          const chatPromise = await registryCollection.insertOne({ type: "chat", name, createdAt: timestamp, lastUpdatedAt: timestamp, id })
-          const chatDocument = registryCollection.findOne(ObjectID(chatPromise.insertedId), { projection: { _id: 0, type: 0 } });
+          const chatPromise = await registryCollection.insertOne({ type: "chat", name, createdAt: timestamp, lastUpdatedAt: timestamp, id, totalMessages: 0 })
+          const chatDocument = registryCollection.findOne(new ObjectID(chatPromise.insertedId), { projection: { _id: 0, type: 0 } });
 
           try {
             const chat = await chatDocument;
@@ -154,7 +148,7 @@ class ChatsMongoDriver {
           const { chatsCollection } = this._getCollection(client);
 
           try {
-            const messages = await chatsCollection.find({ chatId }, { sort: { timestamp: -1 }, limit: 200, skip: offset, projection: { _id: 0, chatId: 0 } }).toArray();
+            const messages = await chatsCollection.find({ chatId }, { sort: { timestamp: 1 }, limit: 200, skip: offset, projection: { _id: 0, chatId: 0 } }).toArray();
             if (messages) {
               resolve(messages)
             } else {
@@ -183,15 +177,19 @@ class ChatsMongoDriver {
           if (dbErr) {
             reject(dbErr);
           };
-          const { chatsCollection } = this._getCollection(client);
+          const { chatsCollection, registryCollection } = this._getCollection(client);
           if (!chatId || !message) {
             throw Error();
           }
           const timestamp = this._createTimestamp();
+          const id = uuid();
+
           try {
-            const chatCreation = await chatsCollection.insertOne({ timestamp, chatId, message, user, color });
-            const chatDocument = await chatsCollection.findOne(ObjectID(chatCreation.insertedId), { projection: { _id: 0 } });
-            if (chatDocument) {
+            const chatCreation = await chatsCollection.insertOne({ id, timestamp, chatId, message, user, color });
+            const chatDocument = await chatsCollection.findOne(new ObjectID(chatCreation.insertedId), { projection: { _id: 0 } });
+            // Update the chat document to include the new message
+            const registryUpdate = await registryCollection.findOneAndUpdate({ id: chatId }, { $inc: { totalMessages: 1 }, $set: { lastUpdatedAt: timestamp } })
+            if (chatDocument && registryUpdate) {
               resolve(chatDocument);
             } else {
               throw Error("Create failure")

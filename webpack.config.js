@@ -5,7 +5,7 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 module.exports = [
   {
-    entry: path.resolve(__dirname, "./client/src") + "/index.ts",
+    entry: path.resolve(__dirname, "./client/src/index.ts"),
     output: {
       path: path.resolve(__dirname, "./dist"),
       publicPath: "/dist",
@@ -24,7 +24,6 @@ module.exports = [
               scss: "vue-style-loader!css-loader!sass-loader",
               sass: "vue-style-loader!css-loader!sass-loader?indentedSyntax"
             }
-            // other vue-loader options go here
           }
         },
         {
@@ -45,6 +44,18 @@ module.exports = [
         {
           test: /\.css$/,
           use: ["vue-style-loader", "css-loader"]
+        },
+        {
+          test: /\.(woff(2)?|ttf|eot|svg)(\?v=\d+\.\d+\.\d+)?$/,
+          use: [
+            {
+              loader: "file-loader",
+              options: {
+                name: "[name].[ext]",
+                outputPath: "fonts/"
+              }
+            }
+          ]
         }
       ]
     },
