@@ -1,12 +1,15 @@
 {
   "compilerOptions": {
+    "experimentalDecorators": true,
     "outDir": "./dist/",
     "sourceMap": true,
     "strict": true,
     "noImplicitReturns": true,
     "module": "es2015",
     "moduleResolution": "node",
-    "target": "es5"
+    "target": "es5",
+    "allowSyntheticDefaultImports": true,
+    "typeRoots": ["./src/@types"]
   },
   "include": ["src/**/*"]
 }
