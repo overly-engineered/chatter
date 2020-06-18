@@ -19,16 +19,21 @@ import colorGenerator from "./server-utils/color";
 
 
 const MONGO_URL = process.env.MONGO_URL || "mongodb://localhost:37017";
+const MONGO_PASSWORD = process.env.MONGO_PASSWORD || null;
+const MONGO_USERNAME = process.env.MONGO_USERNAME || null;
+if (!MONGO_PASSWORD || !MONGO_USERNAME) {
+  throw new Error("NO MONGO PASSWORD");
+}
 const DATABASE = process.env.DATABASE || "chats";
 
 const url = MONGO_URL;
 const dbName = DATABASE;
 
-const mongo = new ChatsMongoDriver({ url, dbName });
+const mongo = new ChatsMongoDriver({ url: url.replace("<PASSWORD>", MONGO_PASSWORD).replace("<USERNAME>", MONGO_USERNAME), dbName });
 
 const port = process.env.PORT || 5000;
 server.listen(port, () => {
-  console.log("listening on 3");
+  console.log(`listening on ${port}`);
 });
 
 /**

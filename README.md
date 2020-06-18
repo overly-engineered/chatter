@@ -74,7 +74,7 @@ $ nvm use
 In development mode
 
 ```shell
-$ npm run start:dev
+$ MONGO_PASSWORD="" npm run start:dev
 ```
 
 Build for production
@@ -86,7 +86,7 @@ $ npm run dist
 Run in production
 
 ```
-$ npm run start
+$ MONGO_PASSWORD=<YOUR_PASS> MONGO_URL=<YOUR_MONGO_URL> DATABASE=<YOUR_DATABASE> npm run start
 ```
 
 ---
