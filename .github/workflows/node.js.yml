@@ -24,13 +24,13 @@ jobs:
           key: ${{ runner.os }}-modules-${{ hashFiles('**/package-lock.json') }}
     
     - name: Install packages
-      run: npm install
+      run: npm run install
     
     - name: lint
-      run: npm lint
+      run: npm run lint
     
     - name: test
-      run: npm test
+      run: npm run test
     
     - name: docs
-      run: npm docs
+      run: npm run docs
