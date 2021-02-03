@@ -20,7 +20,7 @@
     "server": "nodemon --delay 1000ms --verbose --watch dist ./dist/server.js",
     "start:dev": "npm-run-all -p build:watch server",
     "start": "node ./dist/server.js",
-    "test": "echo No tests yet"
+    "test": "jest"
   },
   "husky": {
     "hooks": {
