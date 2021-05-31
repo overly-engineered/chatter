@@ -64,6 +64,6 @@
     "uuidv4": "6.1.0",
     "vue-property-decorator": "8.4.0",
     "vuex": "^3.4.0",
-    "ws": "7.2.3"
+    "ws": "7.4.6"
   }
 }
