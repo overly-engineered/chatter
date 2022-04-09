@@ -59,7 +59,7 @@
     "express": "4.17.1",
     "express-session": "1.17.0",
     "http": "0.0.1-security",
-    "moment": "^2.26.0",
+    "moment": "^2.29.2",
     "mongodb": "3.5.5",
     "uuidv4": "6.1.0",
     "vue-property-decorator": "8.4.0",
